@@ -171,6 +171,8 @@ func (t *UFAChainCode) updateUFA(stub shim.ChaincodeStubInterface, args []string
 	ext.appendUFATransactionHistory(stub, ufanumber, payload)
 	return nil, nil
 }
+
+//Returns all the UFAs created so far
 func (t *UFAChainCode) getAllUFA(stub shim.ChaincodeStubInterface, who string) ([]byte, error) {
 	logger.Info("getAllUFA called")
 	ext := UFAChainCode{}
@@ -189,6 +191,20 @@ func (t *UFAChainCode) getAllUFA(stub shim.ChaincodeStubInterface, who string) (
 	}
 	outputBytes, _ := json.Marshal(outputRecords)
 	logger.Info("Returning records from getAllUFA " + string(outputBytes))
+	return outputBytes, nil
+}
+
+//Get a single ufa
+func (t *UFAChainCode) getUFADetails(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	logger.Info("getUFADetails called with UFA number: " + args[0])
+
+	var outputRecord map[string]string
+	ufanumber := args[0] //UFA ufanum
+	//who :=args[1] //Role
+	recBytes, _ := stub.GetState(ufanumber)
+	json.Unmarshal(recBytes, &outputRecord)
+	outputBytes, _ := json.Marshal(outputRecord)
+	logger.Info("Returning records from getUFADetails " + string(outputBytes))
 	return outputBytes, nil
 }
 
@@ -212,8 +228,7 @@ func (t *UFAChainCode) Invoke(stub shim.ChaincodeStubInterface, function string,
 
 	if function == "createUFA" {
 		ext.createUFA(stub, args)
-	}
-	if function == "updateUFA" {
+	} else if function == "updateUFA" {
 		ext.updateUFA(stub, args)
 	}
 
@@ -226,10 +241,12 @@ func (t *UFAChainCode) Query(stub shim.ChaincodeStubInterface, function string, 
 	ext := UFAChainCode{}
 	if function == "getAllUFA" {
 		return ext.getAllUFA(stub, args[0])
-	}
-	if function == "probe" {
+	} else if function == "getUFADetails" {
+		return ext.getUFADetails(stub, args)
+	} else if function == "probe" {
 		return ext.probe(), nil
 	}
+
 	return nil, nil
 }
 
