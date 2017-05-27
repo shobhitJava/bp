@@ -28,11 +28,10 @@ type UFAChainCode struct {
 }
 
 //Validate Invoice
-func (t *UFAChainCode) validateInvoiceDetails(stub shim.ChaincodeStubInterface, args []string) string {
+func validateInvoiceDetails(stub shim.ChaincodeStubInterface, args []string) string {
 
 	logger.Info("validateInvoice called")
 	var validationMessage bytes.Buffer
-	ext := UFAChainCode{}
 	//who := args[0]
 	payload := args[1]
 	//I am assuming the payload will be an array of Invoices
@@ -53,17 +52,17 @@ func (t *UFAChainCode) validateInvoiceDetails(stub shim.ChaincodeStubInterface, 
 			validationMessage.WriteString("\nInvalid UFA provided")
 		} else {
 			json.Unmarshal(recBytes, &ufaDetails)
-			tolerence := ext.validateNumber(ufaDetails["chargTolrence"])
-			netCharge := ext.validateNumber(ufaDetails["netCharge"])
+			tolerence := validateNumber(ufaDetails["chargTolrence"])
+			netCharge := validateNumber(ufaDetails["netCharge"])
 
-			raisedInvTotal := ext.validateNumber(ufaDetails["raisedInvTotal"])
+			raisedInvTotal := validateNumber(ufaDetails["raisedInvTotal"])
 			//Calculate the max charge
 			maxCharge := netCharge + netCharge*tolerence/100.0
 			//We are assumming 2 invoices have the same amount in it
-			invAmt1 := ext.validateNumber(invoiceList[0]["invoiceAmt"])
-			invAmt2 := ext.validateNumber(invoiceList[1]["invoiceAmt"])
+			invAmt1 := validateNumber(invoiceList[0]["invoiceAmt"])
+			invAmt2 := validateNumber(invoiceList[1]["invoiceAmt"])
 			billingPeriod := invoiceList[0]["billingPeriod"]
-			if ext.checkInvoicesRaised(stub, ufanumber, billingPeriod) {
+			if checkInvoicesRaised(stub, ufanumber, billingPeriod) {
 				validationMessage.WriteString("\nInvoice all already raised for " + billingPeriod)
 			} else if invAmt1 != invAmt2 {
 				validationMessage.WriteString("\nCustomer and Vendor Invoice Amounts are not same")
@@ -78,11 +77,11 @@ func (t *UFAChainCode) validateInvoiceDetails(stub shim.ChaincodeStubInterface, 
 }
 
 //Checking if invoice is already raised or not
-func (t *UFAChainCode) checkInvoicesRaised(stub shim.ChaincodeStubInterface, ufaNumber string, billingPeriod string) bool {
-	ext := UFAChainCode{}
+func checkInvoicesRaised(stub shim.ChaincodeStubInterface, ufaNumber string, billingPeriod string) bool {
+
 	var isAvailable = false
 	logger.Info("checkInvoicesRaised started for :" + ufaNumber + " : Billing month " + billingPeriod)
-	allInvoices := ext.getInvoicesForUFA(stub, ufaNumber)
+	allInvoices := getInvoicesForUFA(stub, ufaNumber)
 	if len(allInvoices) > 0 {
 		for _, invoiceDetails := range allInvoices {
 			logger.Info("checkInvoicesRaised checking for invoice number :" + invoiceDetails["invoiceNumber"])
@@ -96,13 +95,12 @@ func (t *UFAChainCode) checkInvoicesRaised(stub shim.ChaincodeStubInterface, ufa
 }
 
 //Returns all the invoices raised for an UFA
-func (t *UFAChainCode) getInvoicesForUFA(stub shim.ChaincodeStubInterface, ufanumber string) []map[string]string {
+func getInvoicesForUFA(stub shim.ChaincodeStubInterface, ufanumber string) []map[string]string {
 	logger.Info("getInvoicesForUFA called")
-	ext := UFAChainCode{}
 	var outputRecords []map[string]string
 	outputRecords = make([]map[string]string, 0)
 
-	recordsList, err := ext.getAllInvloiceList(stub, ufanumber)
+	recordsList, err := getAllInvloiceList(stub, ufanumber)
 	if err == nil {
 		for _, invoiceNumber := range recordsList {
 			logger.Info("getInvoicesForUFA: Processing record " + ufanumber)
@@ -118,7 +116,7 @@ func (t *UFAChainCode) getInvoicesForUFA(stub shim.ChaincodeStubInterface, ufanu
 	return outputRecords
 }
 
-func (t *UFAChainCode) getAllInvloiceList(stub shim.ChaincodeStubInterface, ufanumber string) ([]string, error) {
+func getAllInvloiceList(stub shim.ChaincodeStubInterface, ufanumber string) ([]string, error) {
 	var recordList []string
 	recBytes, _ := stub.GetState(UFA_INVOICE_PREFIX + ufanumber)
 
@@ -131,7 +129,7 @@ func (t *UFAChainCode) getAllInvloiceList(stub shim.ChaincodeStubInterface, ufan
 }
 
 //Append a new UFA numbetr to the master list
-func (t *UFAChainCode) updateMasterRecords(stub shim.ChaincodeStubInterface, ufaNumber string) error {
+func updateMasterRecords(stub shim.ChaincodeStubInterface, ufaNumber string) error {
 	var recordList []string
 	recBytes, _ := stub.GetState(ALL_ELEMENENTS)
 
@@ -147,7 +145,7 @@ func (t *UFAChainCode) updateMasterRecords(stub shim.ChaincodeStubInterface, ufa
 }
 
 //Append to UFA transaction history
-func (t *UFAChainCode) appendUFATransactionHistory(stub shim.ChaincodeStubInterface, ufanumber string, payload string) error {
+func appendUFATransactionHistory(stub shim.ChaincodeStubInterface, ufanumber string, payload string) error {
 	var recordList []string
 
 	logger.Info("Appending to transaction history " + ufanumber)
@@ -171,7 +169,7 @@ func (t *UFAChainCode) appendUFATransactionHistory(stub shim.ChaincodeStubInterf
 }
 
 //Returns all the UFA Numbers stored
-func (t *UFAChainCode) getAllRecordsList(stub shim.ChaincodeStubInterface) ([]string, error) {
+func getAllRecordsList(stub shim.ChaincodeStubInterface) ([]string, error) {
 	var recordList []string
 	recBytes, _ := stub.GetState(ALL_ELEMENENTS)
 
@@ -184,7 +182,7 @@ func (t *UFAChainCode) getAllRecordsList(stub shim.ChaincodeStubInterface) ([]st
 }
 
 // Creating a new Upfront agreement
-func (t *UFAChainCode) createUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+func createUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	logger.Info("createUFA called")
 
 	ufanumber := args[0]
@@ -194,9 +192,9 @@ func (t *UFAChainCode) createUFA(stub shim.ChaincodeStubInterface, args []string
 	valMsg := validateNewUFA(who, payload)
 	if valMsg == "" {
 		stub.PutState(ufanumber, []byte(payload))
-		ext := UFAChainCode{}
-		ext.updateMasterRecords(stub, ufanumber)
-		ext.appendUFATransactionHistory(stub, ufanumber, payload)
+
+		updateMasterRecords(stub, ufanumber)
+		appendUFATransactionHistory(stub, ufanumber, payload)
 		logger.Info("Created the UFA after successful validation : " + payload)
 	} else {
 		return nil, errors.New("Validation failure: " + valMsg)
@@ -206,7 +204,7 @@ func (t *UFAChainCode) createUFA(stub shim.ChaincodeStubInterface, args []string
 
 //Validate a new UFA
 func validateNewUFA(who string, payload string) string {
-	ext := UFAChainCode{}
+
 	//As of now I am checking if who is of proper role
 	var validationMessage bytes.Buffer
 	var ufaDetails map[string]string
@@ -217,11 +215,11 @@ func validateNewUFA(who string, payload string) string {
 		//Now check individual fields
 		netChargeStr := ufaDetails["netCharge"]
 		tolerenceStr := ufaDetails["chargTolrence"]
-		netCharge := ext.validateNumber(netChargeStr)
+		netCharge := validateNumber(netChargeStr)
 		if netCharge <= 0.0 {
 			validationMessage.WriteString("\nInvalid net charge")
 		}
-		tolerence := ext.validateNumber(tolerenceStr)
+		tolerence := validateNumber(tolerenceStr)
 		if tolerence <= 0.0 || tolerence > 10.0 {
 			validationMessage.WriteString("\nTolerence is out of range. Should be between 0 and 10")
 		}
@@ -234,7 +232,7 @@ func validateNewUFA(who string, payload string) string {
 }
 
 //Validate a input string as number or not
-func (t *UFAChainCode) validateNumber(str string) float64 {
+func validateNumber(str string) float64 {
 	if netCharge, err := strconv.ParseFloat(str, 64); err == nil {
 		return netCharge
 	}
@@ -242,7 +240,7 @@ func (t *UFAChainCode) validateNumber(str string) float64 {
 }
 
 //Update the existing record with the mofied key value pair
-func (t *UFAChainCode) updateRecord(existingRecord map[string]string, fieldsToUpdate map[string]string) (string, error) {
+func updateRecord(existingRecord map[string]string, fieldsToUpdate map[string]string) (string, error) {
 	for key, value := range fieldsToUpdate {
 
 		existingRecord[key] = value
@@ -253,12 +251,11 @@ func (t *UFAChainCode) updateRecord(existingRecord map[string]string, fieldsToUp
 }
 
 // Update and existing UFA record
-func (t *UFAChainCode) updateUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+func updateUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	var existingRecMap map[string]string
 	var updatedFields map[string]string
 
 	logger.Info("updateUFA called ")
-	ext := UFAChainCode{}
 
 	ufanumber := args[0]
 	//TODO: Update the validation here
@@ -271,18 +268,18 @@ func (t *UFAChainCode) updateUFA(stub shim.ChaincodeStubInterface, args []string
 
 	json.Unmarshal(recBytes, &existingRecMap)
 	json.Unmarshal([]byte(payload), &updatedFields)
-	updatedReord, _ := ext.updateRecord(existingRecMap, updatedFields)
+	updatedReord, _ := updateRecord(existingRecMap, updatedFields)
 	//Store the records
 	stub.PutState(ufanumber, []byte(updatedReord))
-	ext.appendUFATransactionHistory(stub, ufanumber, payload)
+	appendUFATransactionHistory(stub, ufanumber, payload)
 	return nil, nil
 }
 
 //Returns all the UFAs created so far
-func (t *UFAChainCode) getAllUFA(stub shim.ChaincodeStubInterface, who string) ([]byte, error) {
+func getAllUFA(stub shim.ChaincodeStubInterface, who string) ([]byte, error) {
 	logger.Info("getAllUFA called")
-	ext := UFAChainCode{}
-	recordsList, err := ext.getAllRecordsList(stub)
+
+	recordsList, err := getAllRecordsList(stub)
 	if err != nil {
 		return nil, errors.New("Unable to get all the records ")
 	}
@@ -301,7 +298,7 @@ func (t *UFAChainCode) getAllUFA(stub shim.ChaincodeStubInterface, who string) (
 }
 
 //Get a single ufa
-func (t *UFAChainCode) getUFADetails(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+func getUFADetails(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	logger.Info("getUFADetails called with UFA number: " + args[0])
 
 	var outputRecord map[string]string
@@ -314,21 +311,14 @@ func (t *UFAChainCode) getUFADetails(stub shim.ChaincodeStubInterface, args []st
 	return outputBytes, nil
 }
 
-// Init initializes the smart contracts
-func (t *UFAChainCode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
-	logger.Info("Init called")
-	//Place an empty arry
-	stub.PutState(ALL_ELEMENENTS, []byte("[]"))
-	return nil, nil
-}
-func (t *UFAChainCode) probe() []byte {
+func probe() []byte {
 	ts := time.Now().Format(time.UnixDate)
 	output := "{\"status\":\"Success\",\"ts\" : \"" + ts + "\" }"
 	return []byte(output)
 }
 
 //Validate the new UFA
-func (t *UFAChainCode) validateNewUFAData(args []string) []byte {
+func validateNewUFAData(args []string) []byte {
 	var output string
 	msg := validateNewUFA(args[0], args[1])
 
@@ -340,15 +330,35 @@ func (t *UFAChainCode) validateNewUFAData(args []string) []byte {
 	return []byte(output)
 }
 
+//Validate the new Invoice created
+func validateNewInvoideData(stub shim.ChaincodeStubInterface, args []string) []byte {
+	var output string
+	msg := validateInvoiceDetails(stub, args)
+
+	if msg == "" {
+		output = "{\"validation\":\"Success\",\"msg\" : \"\" }"
+	} else {
+		output = "{\"validation\":\"Failure\",\"msg\" : \"" + msg + "\" }"
+	}
+	return []byte(output)
+}
+
+// Init initializes the smart contracts
+func (t *UFAChainCode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+	logger.Info("Init called")
+	//Place an empty arry
+	stub.PutState(ALL_ELEMENENTS, []byte("[]"))
+	return nil, nil
+}
+
 // Invoke entry point
 func (t *UFAChainCode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	logger.Info("Invoke called")
-	ext := UFAChainCode{}
 
 	if function == "createUFA" {
-		ext.createUFA(stub, args)
+		createUFA(stub, args)
 	} else if function == "updateUFA" {
-		ext.updateUFA(stub, args)
+		updateUFA(stub, args)
 	}
 
 	return nil, nil
@@ -357,17 +367,16 @@ func (t *UFAChainCode) Invoke(stub shim.ChaincodeStubInterface, function string,
 // Query the rcords form the  smart contracts
 func (t *UFAChainCode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	logger.Info("Query called")
-	ext := UFAChainCode{}
 	if function == "getAllUFA" {
-		return ext.getAllUFA(stub, args[0])
+		return getAllUFA(stub, args[0])
 	} else if function == "getUFADetails" {
-		return ext.getUFADetails(stub, args)
+		return getUFADetails(stub, args)
 	} else if function == "probe" {
-		return ext.probe(), nil
+		return probe(), nil
 	} else if function == "validateNewUFA" {
-		return ext.validateNewUFAData(args), nil
-	} else if function == "validateInvoiceDetails" {
-		return []byte(ext.validateInvoiceDetails(stub, args)), nil
+		return validateNewUFAData(args), nil
+	} else if function == "validateNewInvoideData" {
+		return validateNewInvoideData(stub, args), nil
 	}
 
 	return nil, nil
