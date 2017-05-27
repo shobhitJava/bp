@@ -40,20 +40,94 @@ func (t *UFAChainCode) validateInvoiceDetails(stub shim.ChaincodeStubInterface, 
 	//Checking only one would be sufficient from the amount perspective
 	var invoiceList []map[string]string
 	json.Unmarshal([]byte(payload), &invoiceList)
-	//Get the UFA number
-	//ufanumber := invoiceList[0]["ufanumber"]
-	tolerence := ext.validateNumber(invoiceList[0]["chargTolrence"])
-	netCharge := ext.validateNumber(invoiceList[0]["netCharge"])
-	//Get the ufaDetails
+	if len(invoiceList) < 2 {
+		validationMessage.WriteString("\nInvoice is missing for Customer or Vendor")
+	} else {
+		//Get the UFA number
+		ufanumber := invoiceList[0]["ufanumber"]
+		var ufaDetails map[string]string
+		//who :=args[1] //Role
+		//Get the ufaDetails
+		recBytes, err := stub.GetState(ufanumber)
+		if err != nil {
+			validationMessage.WriteString("\nInvalid UFA provided")
+		} else {
+			json.Unmarshal(recBytes, &ufaDetails)
+			tolerence := ext.validateNumber(ufaDetails["chargTolrence"])
+			netCharge := ext.validateNumber(ufaDetails["netCharge"])
 
-	raisedInvTotal := ext.validateNumber(invoiceList[0]["raisedInvTotal"])
-	//Get the  netcharge total amt and tollrenace
-	maxCharge := netCharge + netCharge*tolerence/100.0
-	if raisedInvTotal > maxCharge {
-		validationMessage.WriteString("\nTotal invoice amount exceded")
+			raisedInvTotal := ext.validateNumber(ufaDetails["raisedInvTotal"])
+			//Calculate the max charge
+			maxCharge := netCharge + netCharge*tolerence/100.0
+			//We are assumming 2 invoices have the same amount in it
+			invAmt1 := ext.validateNumber(invoiceList[0]["invoiceAmt"])
+			invAmt2 := ext.validateNumber(invoiceList[1]["invoiceAmt"])
+			billingPeriod := invoiceList[0]["billingPeriod"]
+			if ext.checkInvoicesRaised(stub, ufanumber, billingPeriod) {
+				validationMessage.WriteString("\nInvoice all already raised for " + billingPeriod)
+			} else if invAmt1 != invAmt2 {
+				validationMessage.WriteString("\nCustomer and Vendor Invoice Amounts are not same")
+			} else if maxCharge < (invAmt1 + raisedInvTotal) {
+				validationMessage.WriteString("\nTotal invoice amount exceded")
+			}
+		} // Invalid UFA number
+	} // End of length of invoics
+	finalMessage := validationMessage.String()
+	logger.Info("validateInvoice Validation message generated :" + finalMessage)
+	return finalMessage
+}
+
+//Checking if invoice is already raised or not
+func (t *UFAChainCode) checkInvoicesRaised(stub shim.ChaincodeStubInterface, ufaNumber string, billingPeriod string) bool {
+	ext := UFAChainCode{}
+	var isAvailable = false
+	logger.Info("checkInvoicesRaised started for :" + ufaNumber + " : Billing month " + billingPeriod)
+	allInvoices := ext.getInvoicesForUFA(stub, ufaNumber)
+	if len(allInvoices) > 0 {
+		for _, invoiceDetails := range allInvoices {
+			logger.Info("checkInvoicesRaised checking for invoice number :" + invoiceDetails["invoiceNumber"])
+			if invoiceDetails["billingPeriod"] == billingPeriod {
+				isAvailable = true
+				break
+			}
+		}
+	}
+	return isAvailable
+}
+
+//Returns all the invoices raised for an UFA
+func (t *UFAChainCode) getInvoicesForUFA(stub shim.ChaincodeStubInterface, ufanumber string) []map[string]string {
+	logger.Info("getInvoicesForUFA called")
+	ext := UFAChainCode{}
+	var outputRecords []map[string]string
+	outputRecords = make([]map[string]string, 0)
+
+	recordsList, err := ext.getAllInvloiceList(stub, ufanumber)
+	if err == nil {
+		for _, invoiceNumber := range recordsList {
+			logger.Info("getInvoicesForUFA: Processing record " + ufanumber)
+			recBytes, _ := stub.GetState(invoiceNumber)
+			var record map[string]string
+			json.Unmarshal(recBytes, &record)
+			outputRecords = append(outputRecords, record)
+		}
+
 	}
 
-	return validationMessage.String()
+	logger.Info("Returning records from getInvoicesForUFA ")
+	return outputRecords
+}
+
+func (t *UFAChainCode) getAllInvloiceList(stub shim.ChaincodeStubInterface, ufanumber string) ([]string, error) {
+	var recordList []string
+	recBytes, _ := stub.GetState(UFA_INVOICE_PREFIX + ufanumber)
+
+	err := json.Unmarshal(recBytes, &recordList)
+	if err != nil {
+		return nil, errors.New("Failed to unmarshal getAllInvloiceList ")
+	}
+
+	return recordList, nil
 }
 
 //Append a new UFA numbetr to the master list
@@ -292,6 +366,8 @@ func (t *UFAChainCode) Query(stub shim.ChaincodeStubInterface, function string, 
 		return ext.probe(), nil
 	} else if function == "validateNewUFA" {
 		return ext.validateNewUFAData(args), nil
+	} else if function == "validateInvoiceDetails" {
+		return []byte(ext.validateInvoiceDetails(stub, args)), nil
 	}
 
 	return nil, nil
