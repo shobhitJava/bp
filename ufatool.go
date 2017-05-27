@@ -48,7 +48,7 @@ func validateInvoiceDetails(stub shim.ChaincodeStubInterface, args []string) str
 		//who :=args[1] //Role
 		//Get the ufaDetails
 		recBytes, err := stub.GetState(ufanumber)
-		if err != nil {
+		if err != nil || recBytes == nil {
 			validationMessage.WriteString("\nInvalid UFA provided")
 		} else {
 			json.Unmarshal(recBytes, &ufaDetails)
