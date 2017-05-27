@@ -27,6 +27,79 @@ const UFA_INVOICE_PREFIX = "UFA_INVOICE_PREFIX_"
 type UFAChainCode struct {
 }
 
+//Retrives all the invoices for a ufa
+func getInvoices(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	logger.Info("getInvoices called")
+	ufanumber := args[0]
+	//who:= args[1]
+	outputBytes, _ := json.Marshal(getInvoicesForUFA(stub, ufanumber))
+	logger.Info("getInvoices returning " + string(outputBytes))
+	return outputBytes, nil
+}
+
+//Retrives an ivoice
+func getInvoiceDetails(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	logger.Info("getInvoiceDetails called with UFA number: " + args[0])
+
+	var outputRecord map[string]string
+	invoiceNumber := args[0] //UFA ufanum
+	//who :=args[1] //Role
+	recBytes, _ := stub.GetState(invoiceNumber)
+	json.Unmarshal(recBytes, &outputRecord)
+	outputBytes, _ := json.Marshal(outputRecord)
+	logger.Info("Returning records from getInvoiceDetails " + string(outputBytes))
+	return outputBytes, nil
+}
+
+//Create new invoices
+func createNewInvoices(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	logger.Info("createNewInvoice called")
+	who := args[0]
+	payload := args[1]
+	//First validate the inputs
+	validationMessag := validateInvoiceDetails(stub, args)
+	if validationMessag == "" {
+		var invoiceList []map[string]string
+		json.Unmarshal([]byte(payload), &invoiceList)
+		//Get the customer invoice
+		custInvoice := invoiceList[0]
+		//Get the vendor invoice
+		vendInvoice := invoiceList[1]
+		//Get the ufa details
+		ufanumber := custInvoice["ufanumber"]
+		var ufaDetails map[string]string
+		//who :=args[1] //Role
+		//Get the ufaDetails
+		recBytes, _ := stub.GetState(ufanumber)
+		json.Unmarshal(recBytes, &ufaDetails)
+		//Calculate the updated invoide total
+		raisedInvTotal := validateNumber(ufaDetails["raisedInvTotal"])
+		invAmt := validateNumber(invoiceList[0]["invoiceAmt"])
+		newRaisedTotal := raisedInvTotal + invAmt
+
+		updaredRecPayload := "{ \"raisedInvTotal\" : \"" + strconv.FormatFloat(newRaisedTotal, 'f', -1, 64) + "\" } "
+		//stub.PutState(,json.Marshal)
+		bytesToStoreCustInvoice, _ := json.Marshal(custInvoice)
+		bytesToStoreVendInvoice, _ := json.Marshal(vendInvoice)
+		stub.PutState(custInvoice["invoiceNumber"], bytesToStoreCustInvoice)
+		stub.PutState(vendInvoice["invoiceNumber"], bytesToStoreVendInvoice)
+		//Append the invoice numbers to ufa details
+		addInvoiceRecordsToUFA(stub, ufanumber, custInvoice["invoiceNumber"], vendInvoice["invoiceNumber"])
+		//Update the original ufa details
+		var updateInput []string
+		updateInput = make([]string, 3)
+		updateInput[0] = ufanumber
+		updateInput[1] = who
+		updateInput[2] = updaredRecPayload
+		logger.Info("createNewInvoice updating  the UFA details")
+		return updateUFA(stub, updateInput)
+
+	} else {
+		return nil, errors.New("CreateNewInvoice Validation failure: " + validationMessag)
+	}
+
+}
+
 //Validate Invoice
 func validateInvoiceDetails(stub shim.ChaincodeStubInterface, args []string) string {
 
@@ -116,6 +189,7 @@ func getInvoicesForUFA(stub shim.ChaincodeStubInterface, ufanumber string) []map
 	return outputRecords
 }
 
+//Retrieve all the invoice list
 func getAllInvloiceList(stub shim.ChaincodeStubInterface, ufanumber string) ([]string, error) {
 	var recordList []string
 	recBytes, _ := stub.GetState(UFA_INVOICE_PREFIX + ufanumber)
@@ -126,6 +200,26 @@ func getAllInvloiceList(stub shim.ChaincodeStubInterface, ufanumber string) ([]s
 	}
 
 	return recordList, nil
+}
+
+//Append the invoice number to the UFA
+func addInvoiceRecordsToUFA(stub shim.ChaincodeStubInterface, ufanumber string, custInvoiceNum string, vendInvoiceNum string) error {
+	logger.Info("Adding invoice numbers to UFA" + ufanumber)
+	var recordList []string
+	recBytes, _ := stub.GetState(UFA_INVOICE_PREFIX + ufanumber)
+
+	err := json.Unmarshal(recBytes, &recordList)
+	if err != nil || recBytes == nil {
+		recordList = make([]string, 0)
+	}
+	recordList = append(recordList, custInvoiceNum)
+	recordList = append(recordList, vendInvoiceNum)
+
+	bytesToStore, _ := json.Marshal(recordList)
+	logger.Info("After addition" + string(bytesToStore))
+	stub.PutState(UFA_INVOICE_PREFIX+ufanumber, bytesToStore)
+	logger.Info("Adding invoice numbers to UFA :Done ")
+	return nil
 }
 
 //Append a new UFA numbetr to the master list
@@ -359,6 +453,8 @@ func (t *UFAChainCode) Invoke(stub shim.ChaincodeStubInterface, function string,
 		createUFA(stub, args)
 	} else if function == "updateUFA" {
 		updateUFA(stub, args)
+	} else if function == "createNewInvoices" {
+		createNewInvoices(stub, args)
 	}
 
 	return nil, nil
@@ -377,8 +473,11 @@ func (t *UFAChainCode) Query(stub shim.ChaincodeStubInterface, function string, 
 		return validateNewUFAData(args), nil
 	} else if function == "validateNewInvoideData" {
 		return validateNewInvoideData(stub, args), nil
+	} else if function == "getInvoices" {
+		return getInvoices(stub, args)
+	} else if function == "getInvoiceDetails" {
+		return getInvoiceDetails(stub, args)
 	}
-
 	return nil, nil
 }
 
