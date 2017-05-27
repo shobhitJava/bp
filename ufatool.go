@@ -20,8 +20,40 @@ const ALL_ELEMENENTS = "ALL_RECS"
 //UFA_TRXN_PREFIX Key prefix for UFA transaction history
 const UFA_TRXN_PREFIX = "UFA_TRXN_HISTORY_"
 
+//UFA_INVOICE_PREFIX Key prefix for identifying Invoices assciated with a ufa
+const UFA_INVOICE_PREFIX = "UFA_INVOICE_PREFIX_"
+
 //UFAChainCode Chaincode default interface
 type UFAChainCode struct {
+}
+
+//Validate Invoice
+func (t *UFAChainCode) validateInvoiceDetails(stub shim.ChaincodeStubInterface, args []string) string {
+
+	logger.Info("validateInvoice called")
+	var validationMessage bytes.Buffer
+	ext := UFAChainCode{}
+	//who := args[0]
+	payload := args[1]
+	//I am assuming the payload will be an array of Invoices
+	//Once for cusotmer and another for vendor
+	//Checking only one would be sufficient from the amount perspective
+	var invoiceList []map[string]string
+	json.Unmarshal([]byte(payload), &invoiceList)
+	//Get the UFA number
+	//ufanumber := invoiceList[0]["ufanumber"]
+	tolerence := ext.validateNumber(invoiceList[0]["chargTolrence"])
+	netCharge := ext.validateNumber(invoiceList[0]["netCharge"])
+	//Get the ufaDetails
+
+	raisedInvTotal := ext.validateNumber(invoiceList[0]["raisedInvTotal"])
+	//Get the  netcharge total amt and tollrenace
+	maxCharge := netCharge + netCharge*tolerence/100.0
+	if raisedInvTotal > maxCharge {
+		validationMessage.WriteString("\nTotal invoice amount exceded")
+	}
+
+	return validationMessage.String()
 }
 
 //Append a new UFA numbetr to the master list
@@ -221,6 +253,19 @@ func (t *UFAChainCode) probe() []byte {
 	return []byte(output)
 }
 
+//Validate the new UFA
+func (t *UFAChainCode) validateNewUFAData(args []string) []byte {
+	var output string
+	msg := validateNewUFA(args[0], args[1])
+
+	if msg == "" {
+		output = "{\"validation\":\"Success\",\"msg\" : \"\" }"
+	} else {
+		output = "{\"validation\":\"Failure\",\"msg\" : \"" + msg + "\" }"
+	}
+	return []byte(output)
+}
+
 // Invoke entry point
 func (t *UFAChainCode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	logger.Info("Invoke called")
@@ -245,6 +290,8 @@ func (t *UFAChainCode) Query(stub shim.ChaincodeStubInterface, function string, 
 		return ext.getUFADetails(stub, args)
 	} else if function == "probe" {
 		return ext.probe(), nil
+	} else if function == "validateNewUFA" {
+		return ext.validateNewUFAData(args), nil
 	}
 
 	return nil, nil
