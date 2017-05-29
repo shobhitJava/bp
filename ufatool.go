@@ -136,7 +136,7 @@ func validateInvoiceDetails(stub shim.ChaincodeStubInterface, args []string) str
 			invAmt2 := validateNumber(invoiceList[1]["invoiceAmt"])
 			billingPeriod := invoiceList[0]["billingPeriod"]
 			if checkInvoicesRaised(stub, ufanumber, billingPeriod) {
-				validationMessage.WriteString("\nInvoice all already raised for " + billingPeriod)
+				validationMessage.WriteString("\nInvoices are already raised for " + billingPeriod)
 			} else if invAmt1 != invAmt2 {
 				validationMessage.WriteString("\nCustomer and Vendor Invoice Amounts are not same")
 			} else if maxCharge < (invAmt1 + raisedInvTotal) {
