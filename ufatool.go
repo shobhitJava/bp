@@ -314,7 +314,7 @@ func validateNewUFA(who string, payload string) string {
 			validationMessage.WriteString("\nInvalid net charge")
 		}
 		tolerence := validateNumber(tolerenceStr)
-		if tolerence <= 0.0 || tolerence > 10.0 {
+		if tolerence < 0.0 || tolerence > 10.0 {
 			validationMessage.WriteString("\nTolerence is out of range. Should be between 0 and 10")
 		}
 
