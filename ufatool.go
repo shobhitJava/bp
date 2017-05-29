@@ -140,7 +140,7 @@ func validateInvoiceDetails(stub shim.ChaincodeStubInterface, args []string) str
 			} else if invAmt1 != invAmt2 {
 				validationMessage.WriteString("\nCustomer and Vendor Invoice Amounts are not same")
 			} else if maxCharge < (invAmt1 + raisedInvTotal) {
-				validationMessage.WriteString("\nTotal invoice amount exceded")
+				validationMessage.WriteString("\nTotal invoice amount exceeded")
 			}
 		} // Invalid UFA number
 	} // End of length of invoics
