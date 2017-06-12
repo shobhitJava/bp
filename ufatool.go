@@ -322,7 +322,7 @@ func createUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) 
 	valMsg := validateNewUFA(who, payload)
 	if valMsg == "" {
 		stub.PutState(ufanumber, []byte(payload))
-
+		fmt.Println("Payload is "+payload)
 		updateMasterRecords(stub, ufanumber)
 		appendUFATransactionHistory(stub, ufanumber, payload)
 		logger.Info("Created the UFA after successful validation : " + payload)
@@ -344,6 +344,7 @@ func validateNewUFA(who string, payload string) string {
 		json.Unmarshal([]byte(payload), &ufaDetails)
 		//Now check individual fields
 		netChargeStr := ufaDetails["netCharge"]
+		fmt.Println("netcharge is :"+ netChargeStr)
 		tolerenceStr := ufaDetails["chargTolrence"]
 		netCharge := validateNumber(netChargeStr)
 		if netCharge <= 0.0 {
