@@ -407,7 +407,7 @@ func createNewUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, erro
 	fmt.Println("outside object: "+ufa.Initiator)
 		
 fmt.Println("inside object: "+ufa.LineItems[0].BuyerTypeOfCharge)
-		json.Marshal(ufa)
+	
 		json_byte, err:=json.Marshal(ufa);
 	err = stub.PutState(ufanumber, json_byte)
 	if err != nil {
@@ -560,6 +560,21 @@ func getUFADetails(stub shim.ChaincodeStubInterface, args []string) ([]byte, err
 	return outputBytes, nil
 }
 
+//Get a single new  ufa
+func getNewUFADetails(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	logger.Info("getUFADetails called with UFA number: " + args[0])
+
+	 outputRecord:= UFADetails{}
+	ufanumber := args[0] //UFA ufanum
+	//who :=args[1] //Role
+	recBytes, _ := stub.GetState(ufanumber)
+	json.Unmarshal(recBytes, &outputRecord)
+	fmt.Println("inside object: "+outputRecord.LineItems[0].BuyerTypeOfCharge)
+	
+	logger.Info("Returning records from getUFADetails " + string(recBytes))
+	return recBytes, nil
+}
+
 func probe() []byte {
 	ts := time.Now().Format(time.UnixDate)
 	output := "{\"status\":\"Success\",\"ts\" : \"" + ts + "\" }"
@@ -637,6 +652,8 @@ func (t *UFAChainCode) Query(stub shim.ChaincodeStubInterface, function string, 
 		return getInvoiceDetails(stub, args)
 	} else if function == "getAllInvoicesForUsr" {
 		return getAllInvoicesForUsr(stub, args)
+	}else if function == "getNewUFA" {
+		return getNewUFADetails(stub, args)
 	}
 	return nil, nil
 }
