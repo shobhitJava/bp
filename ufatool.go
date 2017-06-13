@@ -30,6 +30,59 @@ const UFA_INVOICE_PREFIX = "UFA_INVOICE_PREFIX_"
 type UFAChainCode struct {
 }
 
+type UFADetails struct{
+	
+	Initiator string
+	Status	string
+	RecoveryType	string
+	InvSetlmtTerms string
+	InvFreq string
+	UfaCreatedBy string
+	UfaCreatedByEmail string
+	DateCreated string
+	ValidUntil string
+	RaisedInvTotal string
+	SellerApprover string
+	Title string
+	RelatedUFANum string
+	ConfidentialUFA string
+	InvCurrency string
+	BuyerApprover string
+	SrvcDesc string
+	NetCharge string
+	ChargTolrence string
+	SellerComment string
+	TermCondtions string
+	InvoiceInstallmentCount string
+	Ufanumber string
+	lineItems[] LineItems
+}
+type LineItems struct{
+	
+	Ufanumber string
+	ChargeLineId string
+	BuyerConsUnit string
+	BuyerCostCode string
+	 BuyerGLCode string
+	 BuyerHubStlmtType string
+	 BuyerTypeOfCharge string
+	 BuyerTaxCode string
+	 SellerConsUnit string
+	 SellerCostCode string
+	 SellerGLCode string
+	 SellerTaxChargType string
+	 SellerTaxCode string
+	 SellerTypeOfCharge string
+	 SellrHubStlmtType string
+	 ChargeAmt string
+	 RunningTotal string
+	 Status string
+	
+	
+}
+
+
+
 //Retrives all the invoices for a ufa
 func getInvoices(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	logger.Info("getInvoices called")
@@ -318,11 +371,12 @@ func createUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) 
 	ufanumber := args[0]
 	who := args[1]
 	payload := args[2]
+	fmt.Println("new Payload is "+payload)
 	//If there is no error messages then create the UFA
 	valMsg := validateNewUFA(who, payload)
 	if valMsg == "" {
 		stub.PutState(ufanumber, []byte(payload))
-		fmt.Println("new Payload is "+payload)
+		
 		updateMasterRecords(stub, ufanumber)
 		appendUFATransactionHistory(stub, ufanumber, payload)
 		logger.Info("Created the UFA after successful validation : " + payload)
@@ -331,6 +385,39 @@ func createUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) 
 	}
 	return nil, nil
 }
+
+
+// Creating a new Upfront new agreement
+func createNewUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	logger.Info("createNewUFA called")
+
+	ufanumber := args[0]
+	who := args[1]
+	payload := args[2]
+	fmt.Println("new Payload is "+payload)
+	//If there is no error messages then create the UFA
+	valMsg := validateNewUFA(who, payload)
+	if valMsg == "" {
+		ufa:= UFADetails{}
+		src_json:=[]byte(payload)
+			fmt.Println("outside object: "+ufa.BuyerApprover)
+		
+	json.Unmarshal(src_json, &ufa)
+	fmt.Println("outside object: "+ufa.Initiator)
+		
+fmt.Println("inside object: "+ufa.lineItems[0].BuyerTypeOfCharge)
+		
+		stub.PutState(ufanumber, []byte(payload))
+		
+		updateMasterRecords(stub, ufanumber)
+		appendUFATransactionHistory(stub, ufanumber, payload)
+		logger.Info("Created the UFA after successful validation : " + payload)
+	} else {
+		return nil, errors.New("Validation failure: " + valMsg)
+	}
+	return nil, nil
+}
+
 
 //Validate a new UFA
 func validateNewUFA(who string, payload string) string {
@@ -518,6 +605,8 @@ func (t *UFAChainCode) Invoke(stub shim.ChaincodeStubInterface, function string,
 		updateUFA(stub, args)
 	} else if function == "createNewInvoices" {
 		createNewInvoices(stub, args)
+	} else if function == "createNewUFA" {
+		createNewUFA(stub, args)
 	}
 
 	return nil, nil
