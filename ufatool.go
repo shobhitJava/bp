@@ -32,51 +32,51 @@ type UFAChainCode struct {
 
 type UFADetails struct{
 	
-	initiator string
-	status	string
-	recoveryType	string
-	invSetlmtTerms string
-	invFreq string
-	ufaCreatedBy string
-	ufaCreatedByEmail string
-	dateCreated string
-	validUntil string
-	raisedInvTotal string
-	sellerApprover string
-	title string
-	relatedUFANum string
-	confidentialUFA string
-	invCurrency string
-	buyerApprover string
-	srvcDesc string
-	netCharge string
-	chargTolrence string
-	sellerComment string
-	termCondtions string
-	invoiceInstallmentCount string
-	ufanumber string
-	lineItems[] LineItems
+	Initiator string
+	Status	string
+	RecoveryType	string
+	InvSetlmtTerms string
+	InvFreq string
+	UfaCreatedBy string
+	UfaCreatedByEmail string
+	DateCreated string
+	ValidUntil string
+	RaisedInvTotal string
+	SellerApprover string
+	Title string
+	RelatedUFANum string
+	ConfidentialUFA string
+	InvCurrency string
+	BuyerApprover string
+	SrvcDesc string
+	NetCharge string
+	ChargTolrence string
+	SellerComment string
+	TermCondtions string
+	InvoiceInstallmentCount string
+	Ufanumber string
+	LineItems[] LineItems
 }
 type LineItems struct{
 	
-	ufanumber string
-	chargeLineId string
-	buyerConsUnit string
-	buyerCostCode string
-	 buyerGLCode string
-	 buyerHubStlmtType string
-	 buyerTypeOfCharge string
-	 buyerTaxCode string
-	 sellerConsUnit string
-	 sellerCostCode string
-	 sellerGLCode string
-	 sellerTaxChargType string
-	 sellerTaxCode string
-	 sellerTypeOfCharge string
-	 sellrHubStlmtType string
-	 chargeAmt string
-	 runningTotal string
-	 status string
+	Ufanumber string
+	ChargeLineId string
+	BuyerConsUnit string
+	BuyerCostCode string
+	 BuyerGLCode string
+	 BuyerHubStlmtType string
+	 BuyerTypeOfCharge string
+	 BuyerTaxCode string
+	 SellerConsUnit string
+	 SellerCostCode string
+	 SellerGLCode string
+	 SellerTaxChargType string
+	 SellerTaxCode string
+	 SellerTypeOfCharge string
+	 SellrHubStlmtType string
+	 ChargeAmt string
+	 RunningTotal string
+	 Status string
 	
 	
 }
@@ -400,14 +400,20 @@ func createNewUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, erro
 	if valMsg == "" {
 		ufa:= UFADetails{}
 		src_json:=[]byte(payload)
-			fmt.Println("outside object: "+ufa.buyerApprover)
+			//fmt.Println("outside object: "+ufa.buyerApprover)
 		
 	json.Unmarshal(src_json, &ufa)
-	fmt.Println("outside object: "+ufa.initiator)
+	
+	fmt.Println("outside object: "+ufa.Initiator)
 		
-fmt.Println("inside object: "+ufa.lineItems[0].buyerTypeOfCharge)
+fmt.Println("inside object: "+ufa.LineItems[0].BuyerTypeOfCharge)
+		json.Marshal(ufa)
+		json_byte, err:=json.Marshal(ufa);
+	err = stub.PutState(ufanumber, json_byte)
+	if err != nil {
+			return nil, err
+	}
 		
-		stub.PutState(ufanumber, []byte(payload))
 		
 		updateMasterRecords(stub, ufanumber)
 		appendUFATransactionHistory(stub, ufanumber, payload)
