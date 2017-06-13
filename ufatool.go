@@ -526,10 +526,10 @@ func updateNewUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, erro
 	json.Unmarshal(recBytes, &outputRecord)
 	
 	
-	for _, element := range outputRecord.LineItems {
+	for index, element := range outputRecord.LineItems {
 		//fmt.Println(index)
 		if(element.ChargeLineId==linItem.ChargeLineId){
-		element=linItem
+		outputRecord.LineItems[index]=linItem
 		break;
 		}
 		
