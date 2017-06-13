@@ -499,6 +499,58 @@ func updateUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) 
 	return nil, nil
 }
 
+
+// Update the UFA record
+func updateNewUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	
+	logger.Info("updateUFA called ")
+
+	ufanumber := args[0]
+	//TODO: Update the validation here
+	//who := args[1]
+	payload := args[1]
+	
+
+	linItem:= LineItems{}
+		src_json:=[]byte(payload)
+			//fmt.Println("outside object: "+ufa.buyerApprover)
+		
+	json.Unmarshal(src_json, &linItem)
+	
+	logger.Info("updateUFA old status " + linItem.Status)
+	
+	 outputRecord:= UFADetails{}
+	
+	//who :=args[1] //Role
+	recBytes, _ := stub.GetState(ufanumber)
+	json.Unmarshal(recBytes, &outputRecord)
+	
+	
+	for _, element := range outputRecord.LineItems {
+		//fmt.Println(index)
+		if(element.ChargeLineId==linItem.ChargeLineId){
+		element=linItem
+		break;
+		}
+		
+	logger.Info("updateUFA new status " + linItem.Status)
+		
+	}
+	
+	json_byte, err:=json.Marshal(outputRecord);
+	err=stub.PutState(ufanumber, json_byte)
+	
+	if err != nil {
+			return nil, err
+	}
+	//Store the records
+	
+	
+	appendUFATransactionHistory(stub, ufanumber, payload)
+	return nil, nil
+}
+
+
 //Returns all the UFAs created so far
 func getAllUFA(stub shim.ChaincodeStubInterface, who string) ([]byte, error) {
 	logger.Info("getAllUFA called")
@@ -628,6 +680,8 @@ func (t *UFAChainCode) Invoke(stub shim.ChaincodeStubInterface, function string,
 		createNewInvoices(stub, args)
 	} else if function == "createNewUFA" {
 		createNewUFA(stub, args)
+	}else if function == "updateNewUFA" {
+		updateNewUFA(stub, args)
 	}
 
 	return nil, nil
