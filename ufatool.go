@@ -626,6 +626,28 @@ func getNewUFADetails(stub shim.ChaincodeStubInterface, args []string) ([]byte, 
 	logger.Info("Returning records from getUFADetails " + string(recBytes))
 	return recBytes, nil
 }
+//get all the new ufa
+func getNewAllUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	logger.Info("getAllUFA called")
+
+	recordsList, err := getAllRecordsList(stub)
+	if err != nil {
+		return nil, errors.New("Unable to get all the records ")
+	}
+	
+	res2E := []*UFADetails{}
+	for _, ufanumber := range recordsList {
+		logger.Info("getNewAllUFA: Processing record " + ufanumber)
+		ufa := new(UFADetails)
+		recBytes, _ := stub.GetState(ufanumber)
+		json.Unmarshal(recBytes, &ufa)
+		res2E = append(res2E, ufa)
+	}
+	outputBytes, _ := json.Marshal(res2E)
+	logger.Info("Returning records from getAllUFA " + string(outputBytes))
+	return outputBytes, nil
+}
+
 
 func probe() []byte {
 	ts := time.Now().Format(time.UnixDate)
@@ -708,7 +730,11 @@ func (t *UFAChainCode) Query(stub shim.ChaincodeStubInterface, function string, 
 		return getAllInvoicesForUsr(stub, args)
 	}else if function == "getNewUFA" {
 		return getNewUFADetails(stub, args)
+	}else if function == "getNewAllUFA" {
+		return getNewAllUFA(stub, args)
 	}
+	
+	 
 	return nil, nil
 }
 
