@@ -53,7 +53,7 @@ type UFADetails struct{
 	ChargTolrence string
 	SellerComment string
 	TermCondtions string
-	InvoiceInstallmentCount string
+	InvoiceInstallmentCount string	
 	Ufanumber string
 	LineItems[] LineItems
 }
@@ -360,7 +360,7 @@ func getAllRecordsList(stub shim.ChaincodeStubInterface) ([]string, error) {
 	if err != nil {
 		return nil, errors.New("Failed to unmarshal getAllRecordsList ")
 	}
-
+	
 	return recordList, nil
 }
 
@@ -398,23 +398,19 @@ func createNewUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, erro
 	//If there is no error messages then create the UFA
 	valMsg := validateNewUFA(who, payload)
 	if valMsg == "" {
-		ufa:= UFADetails{}
-		src_json:=[]byte(payload)
-			//fmt.Println("outside object: "+ufa.buyerApprover)
-		
-	json.Unmarshal(src_json, &ufa)
-	
-	fmt.Println("outside object: "+ufa.Initiator)
-		
-fmt.Println("inside object: "+ufa.LineItems[0].BuyerTypeOfCharge)
-	
-		json_byte, err:=json.Marshal(ufa);
-	err = stub.PutState(ufanumber, json_byte)
-	if err != nil {
-			return nil, err
-	}
-		
-		
+//		ufa:= UFADetails{}
+//		src_json:=[]byte(payload)
+//			//fmt.Println("outside object: "+ufa.buyerApprover)
+//		
+//	json.Unmarshal(src_json, &ufa)
+//	
+//	fmt.Println("outside object: "+ufa.Initiator)
+//		
+//fmt.Println("inside object: "+ufa.LineItems[0].BuyerTypeOfCharge)
+//	
+//		json_byte, err:=json.Marshal(ufa);
+
+	 stub.PutState(ufanumber, []byte(payload))
 		updateMasterRecords(stub, ufanumber)
 		appendUFATransactionHistory(stub, ufanumber, payload)
 		logger.Info("Created the UFA after successful validation : " + payload)
@@ -616,12 +612,12 @@ func getUFADetails(stub shim.ChaincodeStubInterface, args []string) ([]byte, err
 func getNewUFADetails(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	logger.Info("getUFADetails called with UFA number: " + args[0])
 
-	 outputRecord:= UFADetails{}
+	// outputRecord:= UFADetails{}
 	ufanumber := args[0] //UFA ufanum
 	//who :=args[1] //Role
 	recBytes, _ := stub.GetState(ufanumber)
-	json.Unmarshal(recBytes, &outputRecord)
-	fmt.Println("inside object: "+outputRecord.LineItems[0].BuyerTypeOfCharge)
+	//json.Unmarshal(recBytes, &outputRecord)
+	//fmt.Println("inside object: "+outputRecord.LineItems[0].BuyerTypeOfCharge)
 	
 	logger.Info("Returning records from getUFADetails " + string(recBytes))
 	return recBytes, nil
