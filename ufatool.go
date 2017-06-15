@@ -31,8 +31,9 @@ type UFAChainCode struct {
 }
 
 type ItemId struct {
-	chargeLineId string 
+	chargeLineId string
 }
+
 //Retrives all the invoices for a ufa
 func getInvoices(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	logger.Info("getInvoices called")
@@ -359,22 +360,22 @@ func createNewUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, erro
 			for key, value := range line {
 				if key == "chargeLineId" {
 					m := make(map[string]string)
-					m["chargeLineId"]=value
-						lineId = append(lineId, m)
-						
+					m["chargeLineId"] = value
+					lineId = append(lineId, m)
+
 					src_json, _ := json.Marshal(line)
 					stub.PutState(value, []byte(src_json))
 				}
 			}
 		}
 		//fmt.Println("lineids are:"+(string)(lineIdData))
-		lineIdData,_:=json.Marshal(lineId);
-		ufaDetails["lineItemsId"]=((string)(lineIdData))
-		fmt.Println("lineids are:"+(string)(lineIdData))
+		lineIdData, _ := json.Marshal(lineId)
+		ufaDetails["lineItemsId"] = ((string)(lineIdData))
+		fmt.Println("lineids are:" + (string)(lineIdData))
 		new_json, _ := json.Marshal(ufaDetails)
-		fmt.Println("new Json is"+(string)(new_json))
-		stub.PutState(ufanumber, []byte(new_json))	
-			
+		fmt.Println("new Json is" + (string)(new_json))
+		stub.PutState(ufanumber, []byte(new_json))
+
 		updateMasterRecords(stub, ufanumber)
 		appendUFATransactionHistory(stub, ufanumber, payload)
 		logger.Info("Created the UFA after successful validation : " + payload)
@@ -465,24 +466,22 @@ func updateLineItem(stub shim.ChaincodeStubInterface, args []string) ([]byte, er
 
 	logger.Info("updateUFA called ")
 
-	var 	ufanumber string
+	var ufanumber string
 	//TODO: Update the validation here
 	//who := args[1]
 	payload := args[2]
 	logger.Info("updateUFA payload passed " + payload)
-   json.Unmarshal([]byte(payload), &updatedFields)
-	
-	for key,value:=range updatedFields{
-		if key == "chargeLineId"{
-			ufanumber=value
+	json.Unmarshal([]byte(payload), &updatedFields)
+
+	for key, value := range updatedFields {
+		if key == "chargeLineId" {
+			ufanumber = value
 			recBytes, _ := stub.GetState(value)
 			json.Unmarshal(recBytes, &existingRecMap)
 		}
-	}	
+	}
 
 	//who :=args[2]
-	
-
 
 	//json.Unmarshal([]byte(payload), &updatedFields)
 	updatedReord, _ := updateRecord(existingRecMap, updatedFields)
@@ -491,7 +490,6 @@ func updateLineItem(stub shim.ChaincodeStubInterface, args []string) ([]byte, er
 	appendUFATransactionHistory(stub, ufanumber, payload)
 	return nil, nil
 }
-
 
 //Returns all the UFAs created so far
 func getAllUFA(stub shim.ChaincodeStubInterface, who string) ([]byte, error) {
@@ -557,37 +555,37 @@ func getUFADetails(stub shim.ChaincodeStubInterface, args []string) ([]byte, err
 //Get a single new  ufa
 func getNewUFADetails(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	logger.Info("getUFADetails called with UFA number: " + args[0])
-	var ufa map[string] string
+	var ufa map[string]string
 	// outputRecord:= UFADetails{}
 	ufanumber := args[0] //UFA ufanum
 	//who :=args[1] //Role
 	recBytes, _ := stub.GetState(ufanumber)
 	json.Unmarshal(recBytes, &ufa)
-	
-	lineIds:=ufa["lineItemsId"]
+
+	lineIds := ufa["lineItemsId"]
 	var newData []map[string]string
-	json.Unmarshal([]byte(lineIds),&newData)
-	
-	fmt.Println("line id are:"+lineIds)
+	json.Unmarshal([]byte(lineIds), &newData)
+
+	fmt.Println("line id are:" + lineIds)
 	var lineItems []map[string]string
-	
-	for _,id:=range newData{
-		var dataLine map[string]string =id
-		for key,value:=range dataLine {
-		if key == "chargeLineId"{
-		u :=make(map[string]string)
-			recBytes, _ := stub.GetState(value)
-			fmt.Println("inside getLineItem id is:"+(value))
-			json.Unmarshal(recBytes, &u)
-			fmt.Println(u)
-			lineItems=append(lineItems, u)
+
+	for _, id := range newData {
+		var dataLine map[string]string = id
+		for key, value := range dataLine {
+			if key == "chargeLineId" {
+				u := make(map[string]string)
+				recBytes, _ := stub.GetState(value)
+				fmt.Println("inside getLineItem id is:" + (value))
+				json.Unmarshal(recBytes, &u)
+				fmt.Println(u)
+				lineItems = append(lineItems, u)
+			}
+		}
 	}
-	}
-	}
-	src_newId,_:=json.Marshal(lineItems)
-	
-	ufa["lineItems"]=((string)(src_newId))
-	
+	src_newId, _ := json.Marshal(lineItems)
+
+	ufa["lineItems"] = ((string)(src_newId))
+
 	//fmt.Println("inside object: "+outputRecord.LineItems[0].BuyerTypeOfCharge)
 	outputBytes, _ := json.Marshal(ufa)
 	logger.Info("Returning records from getUFADetails " + string(outputBytes))
@@ -595,7 +593,6 @@ func getNewUFADetails(stub shim.ChaincodeStubInterface, args []string) ([]byte, 
 }
 
 //get all the new ufa
-
 
 func probe() []byte {
 	ts := time.Now().Format(time.UnixDate)
@@ -627,6 +624,28 @@ func validateNewInvoideData(stub shim.ChaincodeStubInterface, args []string) []b
 		output = "{\"validation\":\"Failure\",\"msg\" : \"" + msg + "\" }"
 	}
 	return []byte(output)
+}
+
+//get all the new ufa
+func getNewAllUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	logger.Info("getAllUFA called")
+
+	recordsList, err := getAllRecordsList(stub)
+	if err != nil {
+		return nil, errors.New("Unable to get all the records ")
+	}
+	
+	var res2E []map[string]string
+	for _, ufanumber := range recordsList {
+		logger.Info("getNewAllUFA: Processing record " + ufanumber)
+		recBytes, _ := stub.GetState(ufanumber)
+		var ufa map[string]string
+		json.Unmarshal(recBytes, &ufa)
+		res2E = append(res2E, ufa)
+	}
+	outputBytes, _ := json.Marshal(res2E)
+	logger.Info("Returning records from getAllUFA " + string(outputBytes))
+	return outputBytes, nil
 }
 
 // Init initializes the smart contracts
@@ -678,10 +697,9 @@ func (t *UFAChainCode) Query(stub shim.ChaincodeStubInterface, function string, 
 		return getAllInvoicesForUsr(stub, args)
 	} else if function == "getNewUFA" {
 		return getNewUFADetails(stub, args)
-	} 
-//	else if function == "getNewAllUFA" {
-//		return getNewAllUFA(stub, args)
-//	}
+	} else if function == "getNewAllUFA" {
+		return getNewAllUFA(stub, args)
+	}
 
 	return nil, nil
 }
