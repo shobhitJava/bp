@@ -532,21 +532,25 @@ func getNewUFADetails(stub shim.ChaincodeStubInterface, args []string) ([]byte, 
 	json.Unmarshal(recBytes, &ufa)
 	
 	lineIds:=ufa["lineItemsId"]
-	idData:=[]*ItemId{}
-	json.Unmarshal([]byte(lineIds),&idData)
+	var newData []map[string]string
+	json.Unmarshal([]byte(lineIds),&newData)
 	
 	fmt.Println("line id are:"+lineIds)
 	var lineItems []map[string]string
 	
-	for _,id:=range lineIds{
+	for _,id:=range newData{
+		var dataLine map[string]string =id
+		for key,value:=range dataLine {
+		if key == "chargeLineId"{
 		u :=make(map[string]string)
-			recBytes, _ := stub.GetState((string)(id))
-			fmt.Println("inside getLineItem id is:"+((string)(id)))
+			recBytes, _ := stub.GetState(value)
+			fmt.Println("inside getLineItem id is:"+(value))
 			json.Unmarshal(recBytes, &u)
 			fmt.Println(u)
 			lineItems=append(lineItems, u)
 	}
-	
+	}
+	}
 	src_newId,_:=json.Marshal(lineItems)
 	
 	ufa["lineItems"]=((string)(src_newId))
