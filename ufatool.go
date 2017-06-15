@@ -30,6 +30,9 @@ const UFA_INVOICE_PREFIX = "UFA_INVOICE_PREFIX_"
 type UFAChainCode struct {
 }
 
+type ItemId struct {
+	chargeLineId string 
+}
 //Retrives all the invoices for a ufa
 func getInvoices(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	logger.Info("getInvoices called")
@@ -349,13 +352,15 @@ func createNewUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, erro
 		lineItem := ufaDetails["lineItems"]
 		delete(ufaDetails, "lineItems")
 		var lineItems []map[string]string
-		lineId:=[]string{}
+		lineId:=[]*ItemId{}
 		json.Unmarshal([]byte(lineItem), &lineItems)
 		for _, value := range lineItems {
 			var line map[string]string = value
 			for key, value := range line {
 				if key == "chargeLineId" {
-						lineId = append(lineId, value)
+					v:=new(ItemId)
+					v.chargeLineId=value
+						lineId = append(lineId, v)
 					src_json, _ := json.Marshal(line)
 					stub.PutState(value, []byte(src_json))
 				}
@@ -525,6 +530,9 @@ func getNewUFADetails(stub shim.ChaincodeStubInterface, args []string) ([]byte, 
 	json.Unmarshal(recBytes, &ufa)
 	
 	lineIds:=ufa["lineItemsId"]
+	idData:=[]*ItemId{}
+	json.Unmarshal([]byte(lineIds),&idData)
+	
 	fmt.Println("line id are:"+lineIds)
 	var lineItems []map[string]string
 	
