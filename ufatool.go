@@ -533,13 +533,14 @@ func getNewUFADetails(stub shim.ChaincodeStubInterface, args []string) ([]byte, 
 			recBytes, _ := stub.GetState((string)(id))
 			fmt.Println("inside getLineItem id is:"+((string)(id)))
 			json.Unmarshal(recBytes, &u)
-			fmt.Println("new items are:"+u)
+			fmt.Println(u)
 			lineItems=append(lineItems, u)
 	}
 	
 	src_newId,_:=json.Marshal(lineItems)
 	
 	ufa["lineItems"]=((string)(src_newId))
+	
 	//fmt.Println("inside object: "+outputRecord.LineItems[0].BuyerTypeOfCharge)
 	outputBytes, _ := json.Marshal(ufa)
 	logger.Info("Returning records from getUFADetails " + string(outputBytes))
