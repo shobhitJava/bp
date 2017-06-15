@@ -638,7 +638,9 @@ func getNewAllUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, erro
 	var res2E []map[string]string
 	for _, ufanumber := range recordsList {
 		logger.Info("getNewAllUFA: Processing record " + ufanumber)
-		recBytes, _ := stub.GetState(ufanumber)
+		var id []string
+		id[0] =  ufanumber
+		recBytes,_:=getNewUFADetails(stub, id)
 		var ufa map[string]string
 		json.Unmarshal(recBytes, &ufa)
 		res2E = append(res2E, ufa)
