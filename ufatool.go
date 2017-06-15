@@ -458,6 +458,39 @@ func updateUFA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) 
 	return nil, nil
 }
 
+//update LineItem
+func updateLineItem(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	var existingRecMap map[string]string
+	var updatedFields map[string]string
+
+	logger.Info("updateUFA called ")
+
+	var 	ufanumber string
+	//TODO: Update the validation here
+	//who := args[1]
+	payload := args[2]
+	logger.Info("updateUFA payload passed " + payload)
+   json.Unmarshal([]byte(payload), &updatedFields)
+	
+	for key,value:=range updatedFields{
+		if key == "chargeLineId"{
+			ufanumber=value
+			recBytes, _ := stub.GetState(value)
+			json.Unmarshal(recBytes, &existingRecMap)
+		}
+	}	
+
+	//who :=args[2]
+	
+
+
+	//json.Unmarshal([]byte(payload), &updatedFields)
+	updatedReord, _ := updateRecord(existingRecMap, updatedFields)
+	//Store the records
+	stub.PutState(ufanumber, []byte(updatedReord))
+	appendUFATransactionHistory(stub, ufanumber, payload)
+	return nil, nil
+}
 
 
 //Returns all the UFAs created so far
@@ -617,10 +650,9 @@ func (t *UFAChainCode) Invoke(stub shim.ChaincodeStubInterface, function string,
 		createNewInvoices(stub, args)
 	} else if function == "createNewUFA" {
 		createNewUFA(stub, args)
-	}		
-//	} else if function == "updateNewUFA" {
-//		updateNewUFA(stub, args)
-//	}
+	} else if function == "updateLineItem" {
+		updateLineItem(stub, args)
+	}
 
 	return nil, nil
 }
